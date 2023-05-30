@@ -1,0 +1,6 @@
+version: 1.2
+workflows:
+
+  - name: HailMerge
+    subclass: WDL
+    primaryDescriptorPath: /wdl/HailMerge.wdl
