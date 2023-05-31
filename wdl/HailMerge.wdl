@@ -37,7 +37,7 @@ workflow HailMerge {
       prefix = prefix,
       gcs_project = select_first([gcs_project]),
       sv_pipeline_hail_docker=sv_pipeline_hail_docker,
-      gcs_network_name = select_first(gcs_network_name, "default"),
+      gcs_network_name = select_first([gcs_network_name, "default"]),
       runtime_attr_override=runtime_override_hail_merge,
   }
 
