@@ -96,6 +96,7 @@ task HailMergeTask {
     set -euxo pipefail
 
     cp ~{write_lines(vcfs)} "files.list"
+    gcloud config list account --format "value(core.account)"
     gcloud config list account --format "value(core.account)" 2> /dev/null 1> account.txt
 
     python <<CODE
@@ -110,6 +111,7 @@ script_path = "/opt/sv-pipeline/scripts/hailmerge.py"
 with open("account.txt", "r") as account_file:
   account = account_file.readline()
 
+print("account = {}".format(account))
 try:
   print(os.popen("hailctl dataproc start --num-workers 4 --region {} --project {} --service-account {} --num-master-local-ssds 1 --num-worker-local-ssds 1 --max-idle=60m --max-age=1440m {}".format("~{region}", "~{gcs_project}", account, cluster_name)).read())
 
