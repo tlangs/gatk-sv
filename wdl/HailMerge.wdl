@@ -96,7 +96,6 @@ task HailMergeTask {
     set -euxo pipefail
 
     cp ~{write_lines(vcfs)} "files.list"
-    gcloud config list account --format "value(core.account)"
     gcloud config list account --format "value(core.account)" 2> /dev/null 1> account.txt
 
     python <<CODE
@@ -113,7 +112,8 @@ with open("account.txt", "r") as account_file:
 
 print("account = {}".format(account))
 try:
-  print(os.popen("hailctl dataproc start --num-workers 4 --region {} --project {} --service-account {} --num-master-local-ssds 1 --num-worker-local-ssds 1 --max-idle=60m --max-age=1440m {}".format("~{region}", "~{gcs_project}", account, cluster_name)).read())
+    print("hailctl dataproc start --num-workers 4 --region {} --project {} --service-account {} --num-master-local-ssds 1 --num-worker-local-ssds 1 --max-idle=60m --max-age=1440m {}".format("~{region}", "~{gcs_project}", account, cluster_name))
+    print(os.popen("hailctl dataproc start --num-workers 4 --region {} --project {} --service-account {} --num-master-local-ssds 1 --num-worker-local-ssds 1 --max-idle=60m --max-age=1440m {}".format("~{region}", "~{gcs_project}", account, cluster_name)).read())
 
   cluster_client = dataproc.ClusterControllerClient(
         client_options={"api_endpoint": f"~{region}-dataproc.googleapis.com:443"}
@@ -130,6 +130,7 @@ except Exception as e:
   print(e)
   raise
 finally:
+  print("gcloud dataproc clusters delete --project {} --region {} --account {} {}".format("~{gcs_project}", "~{region}", account, cluster_name))
   os.popen("gcloud dataproc clusters delete --project {} --region {} --account {} {}".format("~{gcs_project}", "~{region}", account, cluster_name)).read()
 CODE
 
