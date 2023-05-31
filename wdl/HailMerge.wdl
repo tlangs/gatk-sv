@@ -12,7 +12,7 @@ workflow HailMerge {
     String sv_base_mini_docker
     String sv_pipeline_docker
     String sv_pipeline_hail_docker
-    String? gcs_network_name # Set to 'network' if running in Terra Cromwell
+    String? gcs_subnetwork_name # Set to 'subnetwork' if running in Terra Cromwell
     RuntimeAttr? runtime_override_preconcat
     RuntimeAttr? runtime_override_hail_merge
     RuntimeAttr? runtime_override_fix_header
@@ -37,7 +37,7 @@ workflow HailMerge {
       prefix = prefix,
       gcs_project = select_first([gcs_project]),
       sv_pipeline_hail_docker=sv_pipeline_hail_docker,
-      gcs_network_name = select_first([gcs_network_name, "default"]),
+      gcs_subnetwork_name = select_first([gcs_subnetwork_name, "default"]),
       runtime_attr_override=runtime_override_hail_merge,
   }
 
@@ -64,7 +64,7 @@ task HailMergeTask {
     String gcs_project
     String region = "us-central1"
     String sv_pipeline_hail_docker
-    String gcs_network_name
+    String gcs_subnetwork_name
     RuntimeAttr? runtime_attr_override
   }
 
@@ -114,7 +114,7 @@ with open("account.txt", "r") as account_file:
   account = account_file.readline().strip()
 
 try:
-  print(os.popen("hailctl dataproc start --num-workers 4 --region {} --project {} --service-account {} --network {} --num-master-local-ssds 1 --num-worker-local-ssds 1 --max-idle=60m --max-age=1440m {}".format("~{region}", "~{gcs_project}", account, "~{gcs_network_name}", cluster_name)).read())
+  print(os.popen("hailctl dataproc start --num-workers 4 --region {} --project {} --service-account {} --subnet {} --num-master-local-ssds 1 --num-worker-local-ssds 1 --max-idle=60m --max-age=1440m {}".format("~{region}", "~{gcs_project}", account, "projects/~{gcs_project}/regions/~{region}/subnetworks/~{gcs_subnetwork_name}", cluster_name)).read())
 
   cluster_client = dataproc.ClusterControllerClient(
         client_options={"api_endpoint": f"~{region}-dataproc.googleapis.com:443"}
@@ -123,7 +123,7 @@ try:
   for cluster in cluster_client.list_clusters(request={"project_id": "~{gcs_project}", "region": "~{region}"}):
     if cluster.cluster_name == cluster_name:
       cluster_staging_bucket = cluster.config.temp_bucket
-      os.popen("gcloud dataproc jobs submit pyspark {} --cluster={} --project {} --files=files.list --region={} --account {} --network {} --driver-log-levels root=WARN -- {} {}".format(script_path, cluster_name, "~{gcs_project}", "~{region}", account, "~{gcs_network_name}", cluster_staging_bucket, cluster_name)).read()
+      os.popen("gcloud dataproc jobs submit pyspark {} --cluster={} --project {} --files=files.list --region={} --account {} --subnet {} --driver-log-levels root=WARN -- {} {}".format(script_path, cluster_name, "~{gcs_project}", "~{region}", account, "projects/~{gcs_project}/regions/~{region}/subnetworks/~{gcs_subnetwork_name}", cluster_staging_bucket, cluster_name)).read()
       os.popen("gsutil cp -r gs://{}/{}/merged.vcf.bgz .".format(cluster_staging_bucket, cluster_name)).read()
       break
 
@@ -131,7 +131,7 @@ except Exception as e:
   print(e)
   raise
 finally:
-  os.popen("gcloud dataproc clusters delete --project {} --region {} --account {} --network {} {}".format("~{gcs_project}", "~{region}", account, "~{gcs_network_name}", cluster_name)).read()
+  os.popen("gcloud dataproc clusters delete --project {} --region {} --account {} --subnet {} {}".format("~{gcs_project}", "~{region}", account, "projects/~{gcs_project}/regions/~{region}/subnetworks/~{gcs_subnetwork_name}", cluster_name)).read()
 CODE
 
   mv merged.vcf.bgz ~{prefix}.vcf.gz
