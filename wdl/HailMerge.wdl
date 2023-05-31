@@ -108,7 +108,7 @@ cluster_name = "gatk-sv-hail-{}".format(uuid.uuid4())
 script_path = "/opt/sv-pipeline/scripts/hailmerge.py"
 
 with open("account.txt", "r") as account_file:
-  account = account_file.readline()
+  account = account_file.readline().strip()
 
 print("account = {}".format(account))
 try:
